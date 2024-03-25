@@ -1,7 +1,9 @@
 import requests
 import zipfile
 import shutil
+import json
 from pathlib import Path
+
 
 decomp_path = Path().cwd().joinpath("Decompressed")
 comp_path = Path().cwd().joinpath("Compressed")
@@ -15,13 +17,15 @@ def check_dir_health():
     if not songs_path.exists() and not songs_path.is_dir():
         songs_path.mkdir()
 
+
 def get_beatmaps_id():
     beatmaps_id = None
-    fp_beatmapsets = Path().cwd().joinpath("beatmapset_id.txt")
+    fp_beatmapsets = Path().cwd().joinpath("beatmapset_id.json")
 
     if fp_beatmapsets.exists():
         with open(fp_beatmapsets, 'r') as fp:
-            beatmaps_id = [beatmapset_id.strip('\n') for beatmapset_id in fp.readlines()]
+            json_obj = json.load(fp)
+            beatmaps_id = [str(set_id) for set_id in json_obj["id"]]
 
     return beatmaps_id
 
@@ -47,15 +51,15 @@ def decompress_maps():
 
 
 def get_song_files():
-    audio_filename = None
+    audio_filename = []
 
     for file in decomp_path.rglob("*.osu"):
         with open(file, 'r', encoding='utf-8') as fp:
             for line in fp.readlines():
-                if line[:13] == "AudioFilename":
-                    audio_filename = line.split()[1]
+                if line[:13] == "AudioFilename" and audio_filename.count(line[15:].strip('\n')) == 0:
+                    audio_filename.append(line[15:].strip('\n'))
+                    shutil.copy(file.parent.joinpath(audio_filename[-1]), songs_path.joinpath(file.parent.stem + "." + audio_filename[-1].split('.')[-1]))
                     break
-        shutil.copy(file.parent.joinpath(audio_filename), songs_path.joinpath(file.parent.stem + "." + audio_filename.split('.')[-1]))
     
 
 if __name__ == "__main__":
