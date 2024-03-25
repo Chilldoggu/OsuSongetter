@@ -7,6 +7,14 @@ decomp_path = Path().cwd().joinpath("Decompressed")
 comp_path = Path().cwd().joinpath("Compressed")
 songs_path = Path().cwd().joinpath("Songs")
 
+def check_dir_health():
+    if not decomp_path.exists() and not decomp_path.is_dir():
+        decomp_path.mkdir()
+    if not comp_path.exists() and not comp_path.is_dir():
+        comp_path.mkdir()
+    if not songs_path.exists() and not songs_path.is_dir():
+        songs_path.mkdir()
+
 def get_beatmaps_id():
     beatmaps_id = None
     fp_beatmapsets = Path().cwd().joinpath("beatmapset_id.txt")
@@ -51,6 +59,9 @@ def get_song_files():
     
 
 if __name__ == "__main__":
+    # Check if all dirs exists
+    check_dir_health()
+    
     # Get map ids from URL
     beatmaps = get_beatmaps_id()
 
