@@ -58,7 +58,11 @@ def get_song_files():
             for line in fp.readlines():
                 if line[:13] == "AudioFilename" and audio_filename.count(line[15:].strip('\n')) == 0:
                     audio_filename.append(line[15:].strip('\n'))
-                    shutil.copy(file.parent.joinpath(audio_filename[-1]), songs_path.joinpath(file.parent.stem + "." + audio_filename[-1].split('.')[-1]))
+                    # Avoid having multiple audio.mp3 files as it is the most common way of saving it in the beatmapset
+                    if audio_filename[-1].split('.')[0] == "audio":
+                        shutil.copy(file.parent.joinpath(audio_filename[-1]), songs_path.joinpath(file.parent.stem + "." + audio_filename[-1].split('.')[-1]))
+                    else:
+                        shutil.copy(file.parent.joinpath(audio_filename[-1]), songs_path.joinpath(audio_filename[-1]))
                     break
     
 
