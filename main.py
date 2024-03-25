@@ -1,6 +1,11 @@
 import requests
+import zipfile
+import shutil
 from pathlib import Path
 
+decomp_path = Path().cwd().joinpath("Decompressed")
+comp_path = Path().cwd().joinpath("Compressed")
+songs_path = Path().cwd().joinpath("Songs")
 
 def get_beatmaps_id():
     beatmaps_id = None
@@ -19,10 +24,31 @@ def download_maps(beatmaps):
         map_dl = requests.get("https://api.chimu.moe/v1/download/" + set_id)
 
         if map_dl.status_code == 200 and not map_info.get("error_code"):
-            map_dest = Path().cwd().joinpath("Compressed", map_info["Title"] + ".osz")
+            map_dest = comp_path.joinpath(map_info["Title"] + ".osz")
             with open(map_dest, 'wb') as fp:
                 fp.write(map_dl.content)
 
+
+def decompress_maps():
+    for file in comp_path.glob("*.osz"):
+        with zipfile.ZipFile(file, 'r') as zip_ref:
+            beatmap_dir = decomp_path.joinpath(file.stem)
+            if not beatmap_dir.exists():
+                beatmap_dir.mkdir()
+                zip_ref.extractall(beatmap_dir)
+
+
+def get_song_files():
+    audio_filename = None
+
+    for file in decomp_path.rglob("*.osu"):
+        with open(file, 'r', encoding='utf-8') as fp:
+            for line in fp.readlines():
+                if line[:13] == "AudioFilename":
+                    audio_filename = line.split()[1]
+                    break
+        shutil.copy(file.parent.joinpath(audio_filename), songs_path.joinpath(file.parent.stem + "." + audio_filename.split('.')[-1]))
+    
 
 if __name__ == "__main__":
     # Get map ids from URL
@@ -32,5 +58,7 @@ if __name__ == "__main__":
     download_maps(beatmaps)
 
     # Decompress beatmaps into folder "Decompressed"
+    decompress_maps()
 
     # Get songs from decompressed beatmaps and save them to a folder "Songs"
+    get_song_files()
