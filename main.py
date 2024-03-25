@@ -3,23 +3,29 @@ import json
 from ossapi import Ossapi
 
 def init_client(acc_id, secret):
-    ... 
+    print(acc_id, secret)
 
 def get_credentials():
-    secret = acc_id = 0
+    credentials = {
+        "id": 0,
+        "secret": ""
+    }
     fp_credentials = Path().cwd().joinpath("OAuth_credentials.json")
 
     if fp_credentials.exists():
         with open(fp_credentials, 'r') as fp:
             data = json.load(fp)
-            secret = data["secret"] 
-            acc_id = int(data["id"])
+            credentials["id"] = int(data["id"])
+            credentials["secret"] = data["secret"] 
     else:
-        secret = input("Input your OAuth secret: ")
-        acc_id = int(input("Input your OAuth id: "))
-    
-    return [acc_id, secret]
+        credentials["id"] = int(input("Input your OAuth id: "))
+        credentials["secret"] = input("Input your OAuth secret: ")
+        json_obj = json.dumps(credentials, indent=4)
+        with open(fp_credentials, 'w') as fp:
+            fp.write(json_obj)
+
+    return credentials
 
 if __name__ == "__main__":
-    acc_id, secret = get_credentials()
-    init_client(acc_id, secret) 
+    credentials = get_credentials()
+    init_client(credentials["id"], credentials["secret"]) 
