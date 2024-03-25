@@ -1,31 +1,36 @@
+import requests
 from pathlib import Path
-import json
-from ossapi import Ossapi
 
-def init_client(acc_id, secret):
-    print(acc_id, secret)
 
-def get_credentials():
-    credentials = {
-        "id": 0,
-        "secret": ""
-    }
-    fp_credentials = Path().cwd().joinpath("OAuth_credentials.json")
+def get_beatmaps_id():
+    beatmaps_id = None
+    fp_beatmapsets = Path().cwd().joinpath("beatmapset_id.txt")
 
-    if fp_credentials.exists():
-        with open(fp_credentials, 'r') as fp:
-            data = json.load(fp)
-            credentials["id"] = int(data["id"])
-            credentials["secret"] = data["secret"] 
-    else:
-        credentials["id"] = int(input("Input your OAuth id: "))
-        credentials["secret"] = input("Input your OAuth secret: ")
-        json_obj = json.dumps(credentials, indent=4)
-        with open(fp_credentials, 'w') as fp:
-            fp.write(json_obj)
+    if fp_beatmapsets.exists():
+        with open(fp_beatmapsets, 'r') as fp:
+            beatmaps_id = [beatmapset_id.strip('\n') for beatmapset_id in fp.readlines()]
 
-    return credentials
+    return beatmaps_id
+
+
+def download_maps(beatmaps):
+    for set_id in beatmaps:
+        map_info = requests.get("https://api.chimu.moe/v1/set/" + set_id).json()
+        map_dl = requests.get("https://api.chimu.moe/v1/download/" + set_id)
+
+        if map_dl.status_code == 200 and not map_info.get("error_code"):
+            map_dest = Path().cwd().joinpath("Compressed", map_info["Title"] + ".osz")
+            with open(map_dest, 'wb') as fp:
+                fp.write(map_dl.content)
+
 
 if __name__ == "__main__":
-    credentials = get_credentials()
-    init_client(credentials["id"], credentials["secret"]) 
+    # Get map ids from URL
+    beatmaps = get_beatmaps_id()
+
+    # Downlond maps
+    download_maps(beatmaps)
+
+    # Decompress beatmaps into folder "Decompressed"
+
+    # Get songs from decompressed beatmaps and save them to a folder "Songs"
