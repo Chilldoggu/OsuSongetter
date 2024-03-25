@@ -2,6 +2,7 @@ import requests
 import zipfile
 import shutil
 import json
+import re
 from pathlib import Path
 
 
@@ -36,7 +37,7 @@ def download_maps(beatmaps):
         map_dl = requests.get("https://api.chimu.moe/v1/download/" + set_id)
 
         if map_dl.status_code == 200 and not map_info.get("error_code"):
-            map_dest = comp_path.joinpath(map_info["Title"] + ".osz")
+            map_dest = comp_path.joinpath(re.sub("[<>:\"\/|?*]", "", map_info["Title"]) + ".osz")
             with open(map_dest, 'wb') as fp:
                 fp.write(map_dl.content)
 
@@ -51,18 +52,20 @@ def decompress_maps():
 
 
 def get_song_files():
-    audio_filename = []
+    audio_filename = {}
 
     for file in decomp_path.rglob("*.osu"):
+        if audio_filename.get(file.parent.stem) == None:
+            audio_filename[file.parent.stem] = []
         with open(file, 'r', encoding='utf-8') as fp:
             for line in fp.readlines():
-                if line[:13] == "AudioFilename" and audio_filename.count(line[15:].strip('\n')) == 0:
-                    audio_filename.append(line[15:].strip('\n'))
+                if line[:13] == "AudioFilename" and audio_filename[file.parent.stem].count(line[15:].strip('\n')) == 0:
+                    audio_filename[file.parent.stem].append(line[15:].strip('\n'))
                     # Avoid having multiple audio.mp3 files as it is the most common way of saving it in the beatmapset
-                    if audio_filename[-1].split('.')[0] == "audio":
-                        shutil.copy(file.parent.joinpath(audio_filename[-1]), songs_path.joinpath(file.parent.stem + "." + audio_filename[-1].split('.')[-1]))
+                    if audio_filename[file.parent.stem][-1].split('.')[0] == "audio":
+                        shutil.copy(file.parent.joinpath(audio_filename[file.parent.stem][-1]), songs_path.joinpath(file.parent.stem + "." + audio_filename[file.parent.stem][-1].split('.')[-1]))
                     else:
-                        shutil.copy(file.parent.joinpath(audio_filename[-1]), songs_path.joinpath(audio_filename[-1]))
+                        shutil.copy(file.parent.joinpath(audio_filename[file.parent.stem][-1]), songs_path.joinpath(audio_filename[file.parent.stem][-1]))
                     break
     
 
