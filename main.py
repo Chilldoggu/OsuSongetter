@@ -14,7 +14,7 @@ def check_dir_health():
     if not decomp_path.exists() and not decomp_path.is_dir():
         decomp_path.mkdir()
     if not comp_path.exists() and not comp_path.is_dir():
-        comp_path.mkdir()
+        comp_path.mkdiR()
     if not songs_path.exists() and not songs_path.is_dir():
         songs_path.mkdir()
 
@@ -32,12 +32,20 @@ def get_beatmaps_id():
 
 
 def download_maps(beatmaps):
-    for set_id in beatmaps:
-        map_info = requests.get("https://api.chimu.moe/v1/set/" + set_id).json()
-        map_dl = requests.get("https://api.chimu.moe/v1/download/" + set_id)
+    if requests.get("https://api.nerinyan.moe/health").status_code != 200:
+        raise Exception("Server https://api.nerinyan.moe is down!")
 
-        if map_dl.status_code == 200 and not map_info.get("error_code"):
-            map_dest = comp_path.joinpath(re.sub("[<>:\"\/|?*]", "", map_info["Title"]) + ".osz")
+    for set_id in beatmaps:
+        map_dl = requests.get(f"https://api.nerinyan.moe/d/{set_id}?noBg=true&NoHitsound=true&NoStoryboard=true")
+        filename_pattern = re.compile(r'filename=\"\d+ (.+\.osz)\"')
+        if not (match := filename_pattern.search(map_dl.headers["Content-Disposition"])):
+            print("Failed regex match.")
+            continue
+
+        title = match.group(1)
+        print(f"{title} : {map_dl.status_code}")
+        if map_dl.status_code == 200 and match:
+            map_dest = comp_path.joinpath(title)
             with open(map_dest, 'wb') as fp:
                 fp.write(map_dl.content)
 
@@ -55,17 +63,18 @@ def get_song_files():
     audio_filename = {}
 
     for file in decomp_path.rglob("*.osu"):
-        if audio_filename.get(file.parent.stem) == None:
-            audio_filename[file.parent.stem] = []
+        parent_dir = file.parent.name
+        if audio_filename.get(parent_dir) == None:
+            audio_filename[parent_dir] = []
         with open(file, 'r', encoding='utf-8') as fp:
             for line in fp.readlines():
-                if line[:13] == "AudioFilename" and audio_filename[file.parent.stem].count(line[15:].strip('\n')) == 0:
-                    audio_filename[file.parent.stem].append(line[15:].strip('\n'))
+                if line[:13] == "AudioFilename" and audio_filename[parent_dir].count(line[15:].strip('\n')) == 0:
+                    audio_filename[parent_dir].append(line[15:].strip('\n'))
                     # Avoid having multiple audio.mp3 files as it is the most common way of saving it in the beatmapset
-                    if audio_filename[file.parent.stem][-1].split('.')[0] == "audio":
-                        shutil.copy(file.parent.joinpath(audio_filename[file.parent.stem][-1]), songs_path.joinpath(file.parent.stem + "." + audio_filename[file.parent.stem][-1].split('.')[-1]))
+                    if "audio" in audio_filename[parent_dir][-1]:
+                        shutil.copy(file.parent.joinpath(audio_filename[parent_dir][-1]), songs_path.joinpath(parent_dir+ "." + audio_filename[parent_dir][-1].split('.')[-1]))
                     else:
-                        shutil.copy(file.parent.joinpath(audio_filename[file.parent.stem][-1]), songs_path.joinpath(audio_filename[file.parent.stem][-1]))
+                        shutil.copy(file.parent.joinpath(audio_filename[parent_dir][-1]), songs_path.joinpath(audio_filename[parent_dir][-1]))
                     break
     
 
