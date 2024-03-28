@@ -14,7 +14,7 @@ def check_dir_health():
     if not decomp_path.exists() and not decomp_path.is_dir():
         decomp_path.mkdir()
     if not comp_path.exists() and not comp_path.is_dir():
-        comp_path.mkdiR()
+        comp_path.mkdir()
     if not songs_path.exists() and not songs_path.is_dir():
         songs_path.mkdir()
 
