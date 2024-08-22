@@ -33,12 +33,16 @@ def get_beatmaps_id():
 
 def download_maps(beatmaps):
     if requests.get("https://api.nerinyan.moe/health").status_code != 200:
-        raise Exception("Server https://api.nerinyan.moe is down!")
+        raise Exception("[ERROR] Server https://api.nerinyan.moe is down!")
 
     for set_id in beatmaps:
-        map_dl = requests.get(f"https://api.nerinyan.moe/d/{set_id}?noBg=true&NoHitsound=true&NoStoryboard=true")
+        map_dl = requests.get(f"https://api.nerinyan.moe/d/{set_id}")
+        if map_dl.status_code != 200:
+            raise Exception(f"[ERROR] Couldn't download mapset from server https://api.nerinyan.moe. Status code: {map_dl.status_code} {str(map_dl.content)}!")
+
         filename_pattern = re.compile(r'filename=\"\d+ (.+\.osz)\"')
-        if not (match := filename_pattern.search(map_dl.headers["Content-Disposition"])):
+        match = filename_pattern.search(map_dl.headers["Content-Disposition"])
+        if (not match):
             print("Failed regex match.")
             continue
 
